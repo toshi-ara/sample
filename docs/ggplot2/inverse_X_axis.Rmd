@@ -1,0 +1,64 @@
+---
+title: ggplot2でX軸の大小を反転させる方法 (factor)
+author: Toshiaki Ara
+date: "`r Sys.Date()`"
+output:
+  html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(comment = "##")
+knitr::opts_chunk$set(fig.width = 6, fig.asp = 0.618)
+knitr::opts_chunk$set(out.width = "70%", fig.align = "center")
+```
+
+# はじめに
+## 無指定の場合
+
+ggplot2で描画する際に`coord_flip()`を使用するとX軸とY軸を入れ替えることができる。
+ただし、その場合には順番が小さい方が下にきてしまい、思い通りの図にならない。
+
+```{r, message=FALSE}
+library(ggplot2)
+
+p <- ggplot(iris)
+p + (aes(x = Species, y = Sepal.Length)) +
+     geom_boxplot() +
+     coord_flip()
+```
+
+## reorder関数を使用する場合
+
+`reorder`関数を使用することでfactorの順序を変えることができる。
+
+今回の`iris`データの`Species`列はfactorであるため、
+`as.integer`関数で整数に変換する。
+その後、正負を反転させることで順序を逆にする。
+
+```{r }
+p + (aes(x = reorder(Species, -as.integer(Species)),
+         y = Sepal.Length)) +
+     geom_boxplot() +
+     coord_flip()
+```
+
+## forcatsパッケージのfct_reorder関数を使用する場合
+
+`reorder`関数を使用した場合には、
+`-as.integer(Species)`の部分が何をしているのかが一見分かりにくい。
+
+そこで`forcats`パッケージの`fct_reorder`関数を使用した方法を示す。
+`as.integer(Species)`で整数に変換するのは同じである。
+ただし、引数で`.desc = TRUE`を指定することで逆順にしていることが明瞭となる。
+
+したがって、個人的にはこの方法を使用することにする。
+
+```{r, message=FALSE}
+library(forcats)   ## fct_reorder
+
+p + aes(x = fct_reorder(Species, as.integer(Species), .desc = TRUE),
+        y = Sepal.Length) +
+    geom_boxplot() +
+    coord_flip()
+```
+
