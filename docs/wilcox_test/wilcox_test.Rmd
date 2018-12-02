@@ -1,0 +1,144 @@
+---
+title: Wilcoxon順位和検定 / Wilcoxon符号付順位和検定 with `coin / exactRankTests` パッケージ
+author: Toshiaki Ara
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    number_section: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(comment = "")
+## knitr::opts_chunk$set(dev = "cairo_pdf")
+```
+
+# はじめに
+Wilcoxon順位和検定およびWilcoxson符号付順位和検定を行う際にRの組み込み関数 `wilcox.test` はサンプルに同値があると正確なP値を求めることができない。
+しかし `coin` および `exactRankTests` パッケージに含まれる関数を使用すると正確なP値を求めることができる。
+ここでは、これらの関数とRの組み込み関数の使用方法を比較する。
+
+これらのパッケージをインストールしていない場合には
+```{r, eval=FALSE}
+install.package("coin")
+install.package("exactRankTests")
+```
+としてパッケージをインストールする必要がある。
+
+# Wilcoxon順位和検定
+## データの準備
+```{r }
+x <- c(15, 16, 17, 21, 21, 22, 25, 26, 29, 31)
+y <- c(20, 21, 24, 27, 28, 29, 29, 31, 33, 34)
+
+dat <- data.frame(
+    group = c(rep("x", length(x)), rep("y", length(y))),
+    value = c(x, y)
+)
+dat
+```
+
+## Rの組み込み関数（`stats`パッケージ）
+2群の値を直接引数をする場合は以下のように行う。
+同順位がある場合には警告メッセージが表示される。
+```{r}
+wilcox.test(x, y)
+```
+
+formulaを取ることもできる。
+```{r}
+wilcox.test(value ~ group, data = dat)
+```
+
+次に紹介する `coin::wilcox_test` は formula のみのため、この方法で統一する方がいいかもしれない。
+formulaは `tidyverse` のパイプ処理でも使用しやすい事もその理由である。
+
+## `wilcox_test` 関数（`coin`パッケージ）
+
+`coin::wilcox_test` は formula のみの適応である。
+
+```{r, message=FALSE}
+library(coin)
+wilcox_test(value ~ group, data = dat, distribution = "exact")
+```
+
+## `wilcox.exact` 関数（`exactRankTests`パッケージ）
+
+このパッケージは開発が終了している。
+
+```{r, message=FALSE}
+library(exactRankTests)
+wilcox.exact(x, y, exact = TRUE)
+```
+
+formulaを取ることもできる。
+```{r, message=FALSE}
+wilcox.exact(value ~ group, data = dat, exact = TRUE)
+```
+
+
+# Wilcoxon符号付順位和検定
+## データの準備
+```{r }
+x <- c(15, 16, 17, 21, 21, 22, 25, 26, 27, 29)
+y <- c(26, 21, 24, 23, 20, 24, 29, 31, 29, 28)
+
+dat <- data.frame(
+    group = c(rep("x", length(x)), rep("y", length(y))),
+    value = c(x, y),
+    subject = factor(rep(seq(length(x)), 2))
+)
+dat
+```
+
+## Rの組み込み関数（`stats`パッケージ）
+
+2群の値を直接引数をする場合は以下のように行う。
+同順位がある場合には警告メッセージが表示される。
+```{r}
+wilcox.test(x, y, paired = TRUE)
+```
+
+formulaを取ることもできる。
+```{r}
+wilcox.test(value ~ group, data = dat, paired = TRUE)
+```
+
+## `wilcoxsign_test` 関数（`coin`パッケージ）
+
+2群の値を直接引数をする場合は以下のように行う。
+```{r}
+library(coin)
+wilcoxsign_test(x ~ y, distribution = "exact")
+```
+
+formulaを取ることもできる。この場合には個体を識別する変数（ブロック変数）を `|` の後に書く。
+```{r}
+wilcoxsign_test(value ~ group | subject,
+                data = dat, distribution = "exact")
+```
+
+## `wilcox.exact` 関数（`exactRankTests`パッケージ）
+
+このパッケージは開発が終了している。
+
+```{r, message=FALSE}
+library(exactRankTests)
+wilcox.exact(x, y, paired = TRUE, exact = TRUE)
+```
+
+formulaを取ることもできる。
+ただし、個体順にデータが並んでいる必要があるかもしれない。
+```{r, message=FALSE}
+wilcox.exact(value ~ group, data = dat, paired = TRUE, exact = TRUE)
+```
+
+# 結論
+
+データフレームの形式でデータが用意されている場合には
+`coin` パッケージの関数を使用するのが最も確実である。
+`tidyverse` のパイプを使用する事が可能である点も利点であると思う。
+
+データフレームの形式でデータが用意されていない場合には、自力でデータフレームに変換した上で
+`coin` パッケージの関数を使用する。
+むしろ、データ入力の時点で「整理データ」として入力する習慣をつけた方がいいと思う。
+

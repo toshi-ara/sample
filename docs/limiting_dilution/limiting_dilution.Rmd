@@ -1,0 +1,97 @@
+---
+title: Limiting dilution analysis (lda) with R
+author: Toshiaki Ara
+date: "`r Sys.Date()`"
+output:
+  html_document:
+    number_section: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(comment = "")
+## knitr::opts_chunk$set(dev = "cairo_pdf")
+```
+
+
+# データおよび解析 
+
+骨髄細胞の中に造血幹細胞が含まれているが、細胞何個あたりに1個の造血幹細胞が含まれているかを調べる時に
+limiting dilution法が使用される。
+
+ここではRを使用してlimiting dilution法による造血幹細胞の頻度を求める方法を示す。
+
+
+```{r data}
+dat <- data.frame(
+    dose = c(500, 1000, 2000, 3000), # 移植する細胞数
+    dead = c(6, 4, 2, 1),            # 死亡した個体（造血幹細胞が0個だった場合）
+    total = c(10, 10, 10, 10)        # 移植に使用した各群の個体数
+)
+```
+
+## 従来の方法
+
+レシピエント動物に対して造血幹細胞が何個移植されるのかはPoisson分布に従う。
+したがって、Poisson回帰によって造血幹細胞の頻度を求めることができる。
+
+```{r}
+# Poisson回帰
+res <- glm(dead ~ dose + offset(log(total)) - 1, ## log(total) はオフセット項
+           family = poisson, data = dat)
+Coef <- coefficients(res)
+(lambda <- -1 / Coef)
+```
+
+すなわち、`r round(lambda, 0)` 個の細胞に1個の造血幹細胞が含まれていたという結果になる。
+
+```{r}
+# 95%信頼区間を求める関数
+lmres <- function(glm_res, conf.level = 0.95) {
+    lambda <- coefficients(glm_res)
+    CI <- confint(glm_res, level = conf.level)
+    res <- -1 / c(CI[2], lambda, CI[1])
+    names(res) <- c("Lower", "Estimate", "Upper")
+    return(res)
+}
+```
+
+```{r lda_res, message=FALSE}
+res_CI <- lmres(res)
+res_CI
+```
+
+すなわち、95%信頼区間の下限が`r round(res_CI[1], 0)` 個に1個、上限が `r round(res_CI[3], 0)` 個に1個の造血幹細胞を含むという結果になる。
+
+## elda法
+
+Extreme Limiting Dilution Analysis
+
+```{r elda}
+library(statmod)
+res_elda <- with(dat, elda(total - dead, dose, total, test.unit.slope = FALSE))
+res_elda$CI
+```
+
+すなわち`r round(res_elda$CI[2], 0)` 個の細胞に1個の造血幹細胞が含まれていたという結果になる。
+また、95%信頼区間の下限が`r round(res_elda$CI[1], 0)` 個に1個、上限が `r round(res_elda$CI[3], 0)` 個に1個の造血幹細胞を含むという結果になる。
+
+
+```{r}
+plot(res_elda, las = 1)
+```
+
+`test.unit.slope = TRUE`の時はあてはめの結果を出力する。
+
+```{r}
+res_elda <- with(dat, elda(total - dead, dose, total, test.unit.slope = TRUE))
+res_elda
+```
+
+<!-- ## Other -->
+
+<!-- 下請け関数 -->
+
+<!-- ```{r} -->
+<!-- with(dat, eldaOneGroup(total - dead, dose, total)) -->
+<!-- ``` -->
+
