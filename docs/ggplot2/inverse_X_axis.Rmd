@@ -8,6 +8,7 @@ output:
 ---
 
 ```{r setup, include=FALSE}
+knitr::opts_chunk$set(message=FALSE)
 knitr::opts_chunk$set(comment = "##")
 knitr::opts_chunk$set(fig.width = 6, fig.asp = 0.618)
 knitr::opts_chunk$set(out.width = "70%", fig.align = "center")
@@ -23,22 +24,40 @@ ggplot2で描画する際に`coord_flip()`を使用するとX軸とY軸を入れ
 library(ggplot2)
 
 p <- ggplot(iris)
-p + (aes(x = Species, y = Sepal.Length)) +
+p + aes(x = Species, y = Sepal.Length) +
      geom_boxplot() +
      coord_flip()
 ```
 
-## reorder関数を使用する場合
+## （追記）reorder関数を使用する場合
+
+[このサイト](https://gist.github.com/jennybc/6f3fa527b915b920fdd5)
+の内容を参考にした。
 
 `reorder`関数を使用することでfactorの順序を変えることができる。
+この時`dplyr`パッケージの`desc`関数で降順に変換する。
+
+ただし、この後にいくつか例を示しているが、
+`forcats`パッケージの`fct_rev`関数を使用する方法が最も簡単である。
+
+```{r}
+## library(dplyr)  ## desc
+
+p + aes(x = reorder(Species, dplyr::desc(Species)),
+        y = Sepal.Length) +
+     geom_boxplot() +
+    coord_flip()
+```
+
+### 以下の内容は古い
 
 今回の`iris`データの`Species`列はfactorであるため、
 `as.integer`関数で整数に変換する。
 その後、正負を反転させることで順序を逆にする。
 
-```{r }
-p + (aes(x = reorder(Species, -as.integer(Species)),
-         y = Sepal.Length)) +
+```{r}
+p + aes(x = reorder(Species, -as.integer(Species)),
+         y = Sepal.Length) +
      geom_boxplot() +
      coord_flip()
 ```
@@ -59,7 +78,7 @@ p + (aes(x = reorder(Species, -as.integer(Species)),
 ```{r, message=FALSE}
 library(forcats)
 
-p + (aes(x = Species %>% fct_rev, y = Sepal.Length)) +
+p + aes(x = Species %>% fct_rev, y = Sepal.Length) +
      geom_boxplot() +
      coord_flip()
 ```
