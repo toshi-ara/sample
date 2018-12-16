@@ -3,7 +3,8 @@ title: ggplot2でX軸の大小を反転させる方法 (factor)
 author: Toshiaki Ara
 date: "`r Sys.Date()`"
 output:
-  html_document
+  html_document:
+    md_extensions: +east_asian_line_breaks
 ---
 
 ```{r setup, include=FALSE}
@@ -42,7 +43,29 @@ p + (aes(x = reorder(Species, -as.integer(Species)),
      coord_flip()
 ```
 
-## forcatsパッケージのfct_reorder関数を使用する場合
+## （追記）forcatsパッケージのfct_rev関数を使用する場合
+
+`reorder`関数を使用した場合には、
+`-as.integer(Species)`の部分が何をしているのかが一見分かりにくい。
+
+そこで`forcats`パッケージの`fct_rev`関数を使用した方法を示す。
+この関数はfactorの順序を反転させるものである。
+以前`fct_reorder`関数を使用した例を紹介したが、
+それよりも簡潔に記載できる事が分かった。
+
+したがって、個人的にはこの方法を使用することにする。
+
+
+```{r, message=FALSE}
+library(forcats)
+
+p + (aes(x = Species %>% fct_rev, y = Sepal.Length)) +
+     geom_boxplot() +
+     coord_flip()
+```
+
+
+## （古い内容）forcatsパッケージのfct_reorder関数を使用する場合
 
 `reorder`関数を使用した場合には、
 `-as.integer(Species)`の部分が何をしているのかが一見分かりにくい。
